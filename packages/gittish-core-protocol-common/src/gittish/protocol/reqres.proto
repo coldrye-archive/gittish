@@ -1,0 +1,104 @@
+/*
+ * Copyright 2017 Carsten Klein
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package gittish.protocol;
+
+import "google/protobuf/any.proto";
+import "gittish/protocol/id.proto";
+import "gittish/protocol/actor.proto";
+import "gittish/protocol/timing_info.proto";
+
+
+/**
+ * The message Reqres models a unified approach to request/response messaging.
+ */
+message Reqres {
+  /**
+   * The request/response type.
+   */
+  enum Type {
+    /**
+     * A standard (operation) request.
+     */
+    REQUEST = 0;
+
+    /**
+     * A standard (operation) response.
+     */
+    RESPONSE = 1;
+
+    /**
+     * Indicates an unrecoverable error either in form of a streaming request
+     * or a (streaming) response.
+     */
+    ERROR = 2;
+
+    /**
+     * Indicates a stream request/response which involves multiple data segments
+     * to be send over the wire.
+     *
+     * See gittish-core-protocol-streaming for more details.
+     */
+    STREAM = 3;
+
+    /**
+     * Indicates an ACK response to a (streaming) request/response.
+     *
+     * Not all internal protocols require acknowledgment of individual stream
+     * requests/responses.
+     *
+     * While an ACK normally does not require any data, certain services a/o
+     * clients might provide optional data, for example the push service or
+     * the pull client.
+     */
+    ACK = 4;
+
+    /**
+     * Indicates the last request/response in a sequence of (streaming)
+     * requests/responses.
+     */
+    FIN = 5;
+  }
+
+  /**
+   * The type of the request/response.
+   */
+  gittish.protocol.Reqres.Type type = 1;
+
+  /**
+   * Request only. The actor on whose behalf a request is being made.
+   */
+  gittish.protocol.Actor actor = 2;
+
+  /**
+   * The request/response trail id, a base64 encoded UUID4.
+   */
+  gittish.protocol.Id trail_id = 3;
+
+  /**
+   * Response only. Timing info on how long it took to process the request.
+   */
+  gittish.protocol.TimingInfo timing = 4;
+
+  /**
+   * Optional request/response specific data.
+   */
+  google.protobuf.Any data = 5;
+}
+
+// vim: expandtab:ts=2:sw=2:

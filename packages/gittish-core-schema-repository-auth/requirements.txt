@@ -1,0 +1,3 @@
+SQLAlchemy>=1.1.6
+sqlalchemy-migrate>=0.11.0
+gittish_core_schema_common==1.0.0.dev1

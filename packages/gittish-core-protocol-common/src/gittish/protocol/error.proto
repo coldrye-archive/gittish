@@ -1,0 +1,162 @@
+/*
+ * Copyright 2017 Carsten Klein
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package gittish.protocol;
+
+import "google/protobuf/any.proto";
+
+
+/**
+ * TBD:DOCUMENT
+ */
+message CommonErrorType {
+  /**
+   * TBD:DOCUMENT
+   */
+  enum Type {
+    /**
+     * TBD:DOCUMENT
+     *
+     * An unspecified and unexpected, non recoverable error.
+     */
+    UNKNOWN = 0;
+
+    /**
+     * TBD:DOCUMENT
+     *
+     * Internal error occurring, e.g. connection to database backend failure or
+     * similar such errors.
+     */
+    INTERNAL = 1;
+
+    /**
+     * TBD:DOCUMENT
+     *
+     * The request could not be processed due to memory limitations.
+     */
+    OUT_OF_MEMORY = 2;
+  }
+
+  gittish.protocol.CommonErrorType.Type type = 1;
+}
+
+
+/**
+ * TBD:DOCUMENT
+ */
+message NetworkErrorType {
+  /**
+   * TBD:DOCUMENT
+   */
+  enum Type {
+    /**
+     * TBD:DOCUMENT
+     *
+     * The request being made is illegal in the given client/service context.
+     */
+    ILLEGAL_REQUEST = 0;
+
+    /**
+     * TBD:DOCUMENT
+     *
+     * The request could not be validated.
+     */
+    INVALID_REQUEST = 1;
+
+    /**
+     * TBD:DOCUMENT
+     *
+     * The connected client or service hung up prematurely.
+     */
+    HUNG_UP = 2;
+
+    /**
+     * TBD:DOCUMENT
+     *
+     * There was a timeout waiting for additional requests/responses from the
+     * connected client or service.
+     */
+    TIMEOUT = 3;
+  }
+
+  gittish.protocol.NetworkErrorType.Type type = 1;
+}
+
+
+/**
+ * TBD:DOCUMENT
+ */
+message EntityErrorType {
+  /**
+   * TBD:DOCUMENT
+   */
+  enum Type {
+    /**
+     * TBD:DOCUMENT
+     *
+     * An entity by that name/id is not available.
+     */
+    UNAVAIL = 0;
+
+    /**
+     * TBD:DOCUMENT
+     *
+     * An entity by that name/id already exists.
+     */
+    EXISTS = 1;
+
+    /**
+     * TBD:DOCUMENT
+     *
+     * An update to an entity failed due to a version mismatch.
+     */
+    MISMATCH = 2;
+
+    /**
+     * TBD:DOCUMENT
+     *
+     * The provided data failed validation.
+     */
+    INVALID = 3;
+  }
+
+  gittish.protocol.EntityErrorType.Type type = 1;
+}
+
+
+/**
+ * TBD:DOCUMENT
+ */
+message Error {
+  /**
+   * TBD:DOCUMENT
+   */
+  google.protobuf.Any type = 1;
+
+  /**
+   * TBD:DOCUMENT
+   */
+  google.protobuf.Any data = 2;
+
+  /**
+   * TBD:DOCUMENT
+   */
+  repeated string detail = 3;
+}
+
+// vim: expandtab:ts=2:sw=2:

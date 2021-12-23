@@ -1,0 +1,183 @@
+# Copyright 2017 Carsten Klein
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+ifndef __GTS_BUILD_PYTHON_PROJECT__
+
+$(info include $(lastword $(MAKEFILE_LIST)))
+
+
+ifndef __GTS_BUILD_COMMON_PROJECT__
+ifndef GTS_BUILD_COMMON
+$(error GTS_BUILD_COMMON not defined, must include <WORKSPACE_ROOT>/gittish-build-common/CONFIG.in)
+endif
+include $(GTS_BUILD_COMMON)/Makefile.project.in
+endif
+
+
+RUNTIME := python
+
+ifndef BUILD_DIR
+$(error BUILD_DIR not defined, must include gittish-build-common/CONFIG.in.)
+endif
+
+ifndef DIST_DIR
+$(error DIST_DIR not defined, must include gittish-build-common/CONFIG.in.)
+endif
+
+ifndef GTS_BUILD_PROJECT
+$(error GTS_BUILD_PROJECT not defined, must include <WORKSPACE_ROOT>/<PROJECT_ROOT>/CONFIG.in)
+endif
+
+ifndef PACKAGE
+$(error PACKAGE not defined, must include <WORKSPACE_ROOT>/<PROJECT_ROOT>/CONFIG.in)
+endif
+
+$(info including $(GTS_BUILD_PROJECT)/$(RUNTIME)/Makefile.package.in)
+include $(GTS_BUILD_PROJECT)/$(RUNTIME)/Makefile.package.in
+
+ifndef PACKAGE_SRC
+$(error PACKAGE_SRC not defined, must be defined in $(GTS_BUILD_PROJECT)/$(RUNTIME)/Makefile.package.in)
+endif
+
+# builds are made in BUILD_OUT_DIR 
+BUILD_OUT_DIR = $(BUILD_DIR)/$(RUNTIME)/$(PACKAGE)
+
+# distribution packages are copied to DIST_PACKAGE_OUT_DIR
+DIST_PACKAGE_OUT_DIR = $(DIST_DIR)/$(RUNTIME)
+
+
+.PHONY: _python-clean
+
+CLEAN_TARGETS += _python-clean
+
+# FIXME:ignore rmdir failure on non empty directories
+_python-clean:
+	@$(info Goal: $@)
+	@-test -d $(BUILD_OUT_DIR) && \
+		rm -Rf $(BUILD_OUT_DIR)/* && \
+		rmdir -p $(BUILD_OUT_DIR)
+	@-test -f $(DIST_PACKAGE_OUT_DIR)/$(DIST_PACKAGE) && \
+		rm $(DIST_PACKAGE_OUT_DIR)/$(DIST_PACKAGE) && \
+		rmdir -p $(DIST_PACKAGE_OUT_DIR)
+
+
+.PHONY: _python-lint
+
+LINT_TARGETS += _python-lint
+
+_python-lint:
+	@$(info Goal: $@)
+	@cd $(BUILD_OUT_DIR) && $(PYLINT) --rcfile=./pylint.rc gittish
+
+
+.PHONY: _python-build
+
+BUILD_TARGETS += _python-build
+
+_python-build: $(BUILD_OUT_DIR)
+	@$(info Goal: $@)
+	@cp -a $(PACKAGE_SRC) $(BUILD_OUT_DIR)/
+
+$(BUILD_OUT_DIR):
+	@mkdir -p $(BUILD_OUT_DIR)
+
+
+.PHONY: _python-build-generate-meta
+
+BUILD_TARGETS += _python-build-generate-meta
+
+_python-build-generate-meta:
+	@$(info Goal: $@)
+	@$(GREP) -v '^#' META.in > $(BUILD_OUT_DIR)/META
+	@echo 'VERSION = $(shell cat VERSION)' >> $(BUILD_OUT_DIR)/META
+	@echo 'URL = $(BASE_GITHUB_URL)/$(PROJECT)' >> $(BUILD_OUT_DIR)/META
+	@echo 'PACKAGE = $(PACKAGE)' >> $(BUILD_OUT_DIR)/META
+
+
+.PHONY: _python-post-build
+
+POST_BUILD_TARGETS += _python-post-build
+
+_python-post-build:
+	-find $(BUILD_OUT_DIR) -name 'KEEP_DIR' -exec rm {} +
+#	-find $(BUILD_OUT_DIR)/tests -type d -exec rmdir -p {} +
+
+
+.PHONY: _python-doc
+
+DOC_TARGETS += _python-doc
+
+_python-doc:
+	@$(info Goal: $@)
+	$(error $@ not implemented)
+
+
+.PHONY: _python-test
+
+TEST_TARGETS += _python-test
+
+_python-test: $(BUILD_OUT_DIR)/tests
+	@$(info Goal: $@)
+	@$(warning FIXME:Tests require dependencies to be installable from pypi)
+	@$(warning FIXME:Tests must be run from virtual env)
+	#$(VIRTUALENV) $(BUILD_OUT_DIR) && \
+	#	. $(BUILD_OUT_DIR)/bin/activate && \
+	#	pip install 
+	@cd $(BUILD_OUT_DIR) && PYTHONPATH=. $(PYTHON3) -m unittest discover -v -s ./tests/[^_]*
+
+
+.PHONY: _python-coverage
+
+COVERAGE_TARGETS += _python-coverage
+
+_python-coverage:
+	@$(info Goal: $@)
+	$(error $@ not implemented)
+	@echo "FIXME:Test coverage must run from virtual env under COVERAGE_OUT_DIR"
+
+
+.PHONY: _python-dist
+
+DIST_TARGETS += _python-dist
+
+_python-dist: $(DIST_PACKAGE_OUT_DIR)
+	@$(info Goal: $@)
+	@cd $(BUILD_OUT_DIR) && $(PYTHON3) ./setup.py bdist_egg
+	@cp $(BUILD_OUT_DIR)/dist/$(PACKAGE)*.egg $(DIST_PACKAGE_OUT_DIR)/
+
+$(DIST_PACKAGE_OUT_DIR):
+	@mkdir -p $(DIST_PACKAGE_OUT_DIR)
+
+
+.PHONY: _python-dist-clean
+
+DIST_CLEAN_TARGETS += _python-dist-clean
+
+_python-dist-clean:
+	@$(info Goal: $@)
+	@cd $(BUILD_OUT_DIR) && $(PYTHON3) ./setup.py clean
+	@rm $(DIST_PACKAGE_OUT_DIR)/$(PACKAGE)*.egg
+	@-rmdir -p $(DIST_PACKAGE_OUT_DIR)
+
+
+# define guard
+__GTS_BUILD_PYTHON_PROJECT__ = 1
+
+else
+
+$(warning extraneous include of $(lastword $(MAKEFILE_LIST)))
+
+endif # __GTS_BUILD_PYTHON_PROJECT__
+
+# vim: noexpandtab:ts=2:sw=2:

@@ -1,0 +1,96 @@
+# Copyright 2017 Carsten Klein
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+ifndef __GTS_BUILD_PYTHON_PROTOCOL__
+
+$(info include $(lastword $(MAKEFILE_LIST)))
+
+
+ifndef __GTS_BUILD_PYTHON_PROJECT__
+ifndef GTS_BUILD_PYTHON
+$(error GTS_BUILD_PYTHON not defined, must include <WORKSPACE_ROOT>/gittish-build-python/CONFIG.in)
+endif
+include $(GTS_BUILD_PYTHON)/Makefile.project.in
+endif
+
+ifndef __GTS_BUILD_PROTOCOL_COMMON__
+ifndef GTS_BUILD_PROTOCOL
+$(error must include <WORKSPACE_ROOT>/gittish-build-protocol/CONFIG.in)
+endif
+include $(GTS_BUILD_PROTOCOL)/Makefile.common.in
+endif
+
+ifndef PROTOC
+$(error PROTOC not defined)
+endif
+
+ifndef PROTOC_PROTO_PATH_OPT
+$(error PROTOC_PROTO_PATH_OPT not defined)
+endif
+
+ifndef GRPC_PYTHON_PLUGIN
+$(error GRPC_PYTHON_PLUGIN not defined)
+endif
+
+GRPC_PY := "$(PROTOC)" --plugin=protoc-gen-grpc="$(GRPC_PYTHON_PLUGIN)"
+
+# generated code is build in BUILD_GEN_OUT_DIR
+BUILD_GEN_OUT_DIR = $(BUILD_OUT_DIR)
+
+
+ifdef PROTO_SRC
+.PHONY: _python-build-protocol-generate-protoc-sources
+
+BUILD_TARGETS += _python-build-protocol-generate-protoc-sources
+
+_python-build-protocol-generate-protoc-sources: $(PROTO_SRC:%=$(PROTO_SRC_DIR)/%)
+	$(info Goal: $@)
+	@$(PROTOC) $(PROTOC_PROTO_PATH_OPT) --python_out=$(BUILD_GEN_OUT_DIR) $^
+endif
+
+
+ifdef GRPC_SRC
+.PHONY: _python-build-protocol-generate-grpc-sources
+
+BUILD_TARGETS += _python-build-protocol-generate-grpc-sources
+
+_python-build-protocol-generate-grpc-sources: $(GRPC_SRC:%=$(PROTO_SRC_DIR)/%)
+	$(info Goal: $@)
+	$(GRPC_PY) $(PROTOC_PROTO_PATH_OPT) --python_out=$(BUILD_GEN_OUT_DIR) --grpc_out=$(BUILD_GEN_OUT_DIR) $^
+
+
+.PHONY: _python-build-protocol-remove-extraneous-pb2s
+
+POST_BUILD_TARGETS += _python-build-protocol-remove-extraneous-pb2s
+
+# since we do not define any messages or other types in grpc only protocol buffer sources,
+# the grpc plugin will generate extraneous pb2 files which are being unused
+EXTRANEOUS_PB2S = $(GRPC_SRC:%.proto=$(BUILD_GEN_OUT_DIR)/%_pb2.py)
+
+.SECONDEXPANSION:
+_python-build-protocol-remove-extraneous-pb2s: $$(EXTRANEOUS_PB2S)
+	$(info Goal: $@)
+	@rm $^
+endif
+
+# define guard
+__GTS_BUILD_PYTHON_PROTOCOL__ = 1
+
+else
+
+$(warning extraneous include of $(lastword $(MAKEFILE_LIST)))
+
+endif # __GTS_BUILD_PYTHON_PROTOCOL__
+
+# vim: noexpandtab:ts=2:sw=2:
